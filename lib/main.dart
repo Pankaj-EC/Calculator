@@ -6,7 +6,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +25,8 @@ class Calculator extends StatefulWidget {
 class _CalculatorState extends State<Calculator> {
   bool isGujarati = false;
   bool isSoundEnabled = true;
+  String input = "";
   String output = "0";
-  String history = "";
   List<String> historyList = [];
   String _output = "0";
   double num1 = 0;
@@ -75,6 +75,7 @@ class _CalculatorState extends State<Calculator> {
   void buttonPressed(String buttonText) {
     if (buttonText == "C") {
       _output = "0";
+      input = "";
       num1 = 0;
       num2 = 0;
       operand = "";
@@ -82,15 +83,20 @@ class _CalculatorState extends State<Calculator> {
       _output = _output.length > 1
           ? _output.substring(0, _output.length - 1)
           : "0";
+      input = input.length > 1
+          ? input.substring(0, input.length - 1)
+          : "";
     } else if (buttonText == "+" || buttonText == "-" || buttonText == "×" || buttonText == "÷") {
       if (isNumeric(_output)) {
         num1 = double.parse(_output);
         operand = buttonText;
         _output = "0";
+        input += buttonText;
       }
     } else if (buttonText == ".") {
       if (!_output.contains(".")) {
         _output += buttonText;
+        input += buttonText;
       }
     } else if (buttonText == "=") {
       if (isNumeric(_output)) {
@@ -111,12 +117,12 @@ class _CalculatorState extends State<Calculator> {
             break;
         }
 
-        historyList.add(getDisplayText("$num1 $operand $num2 = $_output"));
-        history += "$num1 $operand $num2 = $_output\n";
+        historyList.add(getDisplayText("$num1 $operand $num2=$_output"));
 
         num1 = 0;
         num2 = 0;
         operand = "";
+        input = "";
 
         // Speak the result
         _speak(_output);
@@ -127,6 +133,7 @@ class _CalculatorState extends State<Calculator> {
       } else {
         _output += buttonText;
       }
+      input += buttonText;
     }
 
     setState(() {
@@ -156,36 +163,6 @@ class _CalculatorState extends State<Calculator> {
     );
   }
 
-  void _showHistory() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("History"),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                SingleChildScrollView(
-                  child: ListBody(
-                    children: historyList.map((e) => Text(e)).toList(),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      historyList.clear();
-                    });
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text("Clear History"),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,10 +170,6 @@ class _CalculatorState extends State<Calculator> {
       appBar: AppBar(
         title: const Text("Calculator"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: _showHistory,
-          ),
           IconButton(
             icon: Icon(
               isSoundEnabled ? Icons.volume_up : Icons.volume_off,
@@ -224,12 +197,73 @@ class _CalculatorState extends State<Calculator> {
           Container(
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-            child: Text(
-              getDisplayText(output),
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  getDisplayText(input),
+                  style: const TextStyle(fontSize: 24, color: Colors.white54),
+                ),
+                Text(
+                  getDisplayText(output),
+                  style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.backspace),
+                  onPressed: () {
+                    buttonPressed("⌫");
+                  },
+                ),
+              ],
             ),
           ),
-          const Expanded(child: Divider()),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "History",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            historyList.clear();
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: Scrollbar(
+                      thumbVisibility: true,
+                      child: ListView.builder(
+                        itemCount: historyList.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: ListTile(
+                              title: Text(
+                                historyList[index],
+                                textAlign: TextAlign.left,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Column(
             children: [
               Row(
@@ -266,7 +300,7 @@ class _CalculatorState extends State<Calculator> {
               ),
               Row(
                 children: [
-                  buildButton("+/-", Colors.blueGrey),
+                  buildButton("%", Colors.blueGrey),
                   buildButton("0", Colors.grey),
                   buildButton(".", Colors.grey),
                   buildButton("=", Colors.green),
