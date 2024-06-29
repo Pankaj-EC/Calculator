@@ -24,6 +24,7 @@ class Calculator extends StatefulWidget {
 
 class _CalculatorState extends State<Calculator> {
   bool isGujarati = false;
+  bool isSoundEnabled = true;
   String output = "0";
   String history = "";
   List<String> historyList = [];
@@ -65,8 +66,10 @@ class _CalculatorState extends State<Calculator> {
   }
 
   Future<void> _speak(String text) async {
-    await flutterTts.setLanguage(isGujarati ? "gu-IN" : "en-US");
-    await flutterTts.speak(text);
+    if (isSoundEnabled) {
+      await flutterTts.setLanguage(isGujarati ? "gu-IN" : "en-US");
+      await flutterTts.speak(text);
+    }
   }
 
   void buttonPressed(String buttonText) {
@@ -153,6 +156,37 @@ class _CalculatorState extends State<Calculator> {
     );
   }
 
+  void _showHistory() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("History"),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                SingleChildScrollView(
+                  child: ListBody(
+                    children: historyList.map((e) => Text(e)).toList(),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      historyList.clear();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text("Clear History"),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,20 +195,16 @@ class _CalculatorState extends State<Calculator> {
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
+            onPressed: _showHistory,
+          ),
+          IconButton(
+            icon: Icon(
+              isSoundEnabled ? Icons.volume_up : Icons.volume_off,
+            ),
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text("History"),
-                    content: SingleChildScrollView(
-                      child: ListBody(
-                        children: historyList.map((e) => Text(e)).toList(),
-                      ),
-                    ),
-                  );
-                },
-              );
+              setState(() {
+                isSoundEnabled = !isSoundEnabled;
+              });
             },
           ),
           Switch(
