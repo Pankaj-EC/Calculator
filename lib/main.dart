@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,11 +31,22 @@ class _CalculatorState extends State<Calculator> {
   double num1 = 0;
   double num2 = 0;
   String operand = "";
+  FlutterTts flutterTts = FlutterTts();
 
   final Map<String, String> engToGuj = {
     "0": "૦", "1": "૧", "2": "૨", "3": "૩", "4": "૪",
     "5": "૫", "6": "૬", "7": "૭", "8": "૮", "9": "૯"
   };
+
+  @override
+  void initState() {
+    super.initState();
+    initTts();
+  }
+
+  Future<void> initTts() async {
+    await flutterTts.awaitSpeakCompletion(true);
+  }
 
   String getDisplayText(String text) {
     if (isGujarati) {
@@ -52,7 +64,12 @@ class _CalculatorState extends State<Calculator> {
     }
   }
 
-  buttonPressed(String buttonText) {
+  Future<void> _speak(String text) async {
+    await flutterTts.setLanguage(isGujarati ? "gu-IN" : "en-US");
+    await flutterTts.speak(text);
+  }
+
+  void buttonPressed(String buttonText) {
     if (buttonText == "C") {
       _output = "0";
       num1 = 0;
@@ -97,6 +114,9 @@ class _CalculatorState extends State<Calculator> {
         num1 = 0;
         num2 = 0;
         operand = "";
+
+        // Speak the result
+        _speak(_output);
       }
     } else {
       if (_output == "0") {
