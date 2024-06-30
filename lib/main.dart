@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:math_expressions/math_expressions.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,15 +57,6 @@ class _CalculatorState extends State<Calculator> {
     return text;
   }
 
-  bool isNumeric(String str) {
-    try {
-      double.parse(str);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   Future<void> _speak(String text) async {
     if (isSoundEnabled) {
       await flutterTts.setLanguage(isGujarati ? "gu-IN" : "en-US");
@@ -73,72 +65,35 @@ class _CalculatorState extends State<Calculator> {
   }
 
   void buttonPressed(String buttonText) {
-    if (buttonText == "C") {
-      _output = "0";
-      input = "";
-      num1 = 0;
-      num2 = 0;
-      operand = "";
-    } else if (buttonText == "⌫") {
-      _output = _output.length > 1
-          ? _output.substring(0, _output.length - 1)
-          : "0";
-      input = input.length > 1
-          ? input.substring(0, input.length - 1)
-          : "";
-    } else if (buttonText == "+" || buttonText == "-" || buttonText == "×" || buttonText == "÷") {
-      if (isNumeric(_output)) {
-        num1 = double.parse(_output);
-        operand = buttonText;
-        _output = "0";
-        input += buttonText;
-      }
-    } else if (buttonText == ".") {
-      if (!_output.contains(".")) {
-        _output += buttonText;
-        input += buttonText;
-      }
-    } else if (buttonText == "=") {
-      if (isNumeric(_output)) {
-        num2 = double.parse(_output);
-
-        switch (operand) {
-          case "+":
-            _output = (num1 + num2).toString();
-            break;
-          case "-":
-            _output = (num1 - num2).toString();
-            break;
-          case "×":
-            _output = (num1 * num2).toString();
-            break;
-          case "÷":
-            _output = (num1 / num2).toString();
-            break;
-        }
-
-        historyList.add(getDisplayText("$num1 $operand $num2=$_output"));
-
-        num1 = 0;
-        num2 = 0;
-        operand = "";
-        input = "";
-
-        // Speak the result
-        _speak(_output);
-      }
-    } else {
-      if (_output == "0") {
-        _output = buttonText;
-      } else {
-        _output += buttonText;
-      }
-      input += buttonText;
-    }
-
     setState(() {
+      if (buttonText == "C") {
+        input = "";
+        _output = "0";
+      } else if (buttonText == "⌫") {
+        input = input.length > 1
+            ? input.substring(0, input.length - 1)
+            : "";
+        _output = input;
+      } else if (buttonText == "=") {
+        if (input.isNotEmpty && _isValidExpression(input)) {
+          Parser p = Parser();
+          Expression exp = p.parse(input.replaceAll('×', '*').replaceAll('÷', '/').replaceAll('%', '/100'));
+          ContextModel cm = ContextModel();
+          _output = exp.evaluate(EvaluationType.REAL, cm).toString();
+          historyList.add(getDisplayText("$input = $_output"));
+          input = _output;
+          _speak(_output);
+        }
+      } else {
+        input += buttonText;
+      }
       output = _output;
     });
+  }
+
+  bool _isValidExpression(String expression) {
+    RegExp exp = RegExp(r'[\+\-\×\÷]');
+    return exp.hasMatch(expression);
   }
 
   Widget buildButton(String buttonText, Color color) {
@@ -162,7 +117,6 @@ class _CalculatorState extends State<Calculator> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -246,14 +200,13 @@ class _CalculatorState extends State<Calculator> {
                       child: ListView.builder(
                         itemCount: historyList.length,
                         itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: ListTile(
-                              title: Text(
-                                historyList[index],
-                                textAlign: TextAlign.left,
-                                style: TextStyle(fontSize: 16),
-                              ),
+                          return ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.all(0),
+                            title: Text(
+                              historyList[index],
+                              textAlign: TextAlign.left,
+                              style: const TextStyle(fontSize: 16),
                             ),
                           );
                         },
